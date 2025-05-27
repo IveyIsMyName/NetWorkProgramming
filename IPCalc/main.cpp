@@ -1,4 +1,5 @@
 #include<Windows.h>
+#include <CommCtrl.h>
 #include"resource.h"
 
 BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -14,7 +15,13 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		break;
+	{
+		HWND hSpin = GetDlgItem(hwnd, IDC_SPIN_PREFIX);
+		SendMessage(hSpin, UDM_SETRANGE, 0, MAKELPARAM(30, 1));
+		SetDlgItemInt(hwnd, IDC_EDIT_PREFIX, 1, FALSE);
+	}
+	break;
+
 	case WM_COMMAND:
 		break;
 	case WM_CLOSE:
