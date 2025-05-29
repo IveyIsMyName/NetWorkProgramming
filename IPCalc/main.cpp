@@ -55,7 +55,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				SendMessage(hIPprefix, WM_SETTEXT, 0, (LPARAM)szIPprefix);
 			}
 			break;
-		case IDC_EDIT_PREFIX:
+		/*case IDC_EDIT_PREFIX:
 		{
 			if (HIWORD(wParam) == EN_CHANGE)
 			{
@@ -68,13 +68,39 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
-		break;
+		break;*/
 		case IDOK:
 			break;
 		case IDCANCEL:
 			EndDialog(hwnd, 0);
 		}
 
+	}
+	break;
+	case WM_NOTIFY:
+	{
+		NMUPDOWN* pNMUpDown = (NMUPDOWN*)lParam;
+		if (pNMUpDown->hdr.idFrom == IDC_SPIN_PREFIX)
+		{
+			if (pNMUpDown->hdr.code == UDN_DELTAPOS)
+			{
+				HWND hIPmask = GetDlgItem(hwnd, IDC_IPMASK);
+				DWORD dwIPmask = UINT_MAX;
+				int iPos = pNMUpDown->iPos + pNMUpDown->iDelta;
+
+				if (iPos < 1) iPos = 1;
+				if (iPos > 30) iPos = 30;
+
+				dwIPmask <<= (32 - iPos);
+				SendMessage(hIPmask, IPM_SETADDRESS, 0, dwIPmask);
+
+				CHAR szIPprefix[3];
+				sprintf(szIPprefix, "%i", iPos);
+				SetDlgItemText(hwnd, IDC_EDIT_PREFIX, szIPprefix);
+
+				return TRUE; 
+			}
+		}
 	}
 	break;
 	case WM_CLOSE:
