@@ -95,7 +95,7 @@ void main()
 			CHAR sz_response[] = "Hello, I am Server! Nice to meet you!";
 			cout << "Message: " << recvbuffer << endl;
 			//INT iSendResult = send(ClientSocket, sz_response,sizeof(sz_response), 0);
-			INT iSendResult = send(ClientSocket, recvbuffer,strlen(recvbuffer), 0);
+			INT iSendResult = send(ClientSocket, recvbuffer, strlen(recvbuffer), 0);
 			if (iSendResult == SOCKET_ERROR)
 			{
 				cout << "Error: Send failed with code: " << WSAGetLastError() << endl;
@@ -111,6 +111,7 @@ void main()
 		else if (iResult == 0)
 		{
 			cout << "Connection closing" << endl;
+			closesocket(ClientSocket);
 		}
 		else
 		{
@@ -123,8 +124,8 @@ void main()
 			break;
 		}
 	} while (iResult > 0);
-	closesocket(ClientSocket);
 	closesocket(ListenSocket);
 	freeaddrinfo(result);
 	WSACleanup();
 }
+//VOID HandleCLient(SOCKET ClientSocket, )
