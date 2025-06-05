@@ -88,10 +88,11 @@ void main()
 	do
 	{
 		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
-		if (iResult > 0)cout << "Bytes received: " << iResult << endl;
+		if (iResult > 0)cout << "Bytes received: " << iResult << ", Message: " << recvbuffer << endl;
 		else if (iResult == 0)cout << "Connection closed" << endl;
 		else cout << "Recieve failed with code: " << WSAGetLastError() << endl;
-	} while (iResult > 0);
+
+	} while (iResult > 0 && strcmp(recvbuffer, "exit"));
 
 	//7) Disconnect:
 	iResult = shutdown(connect_socket, SD_SEND);
