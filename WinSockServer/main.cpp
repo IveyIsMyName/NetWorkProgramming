@@ -13,6 +13,7 @@ using namespace std;
 
 #define DEFAULT_PORT			"27015"
 #define DEFAULT_BUFFER_LENGTH	1500 
+#define SZ_SORRY	"Sorry, but all is busy"
 
 void main()
 {
@@ -22,6 +23,7 @@ void main()
 
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0)
+				
 	{
 		cout << "Error: WSAstartup failed: " << iResult << endl;
 		return;
@@ -81,35 +83,52 @@ void main()
 		return;
 	}
 
-	VOID HandleClient(SOCKET ClientSocket);
-	CONST INT MAX_CLIENTS = 5;
+	VOID WINAPI HandleClient(SOCKET ClientSocket);
+	CONST INT MAX_CLIENTS = 3;
 	SOCKET clients[MAX_CLIENTS] = {};
 	DWORD dwThreadIDs[MAX_CLIENTS] = {};
 	HANDLE hThreads[MAX_CLIENTS] = {};
-	
+
 	INT i = 0;
 
-	while (i < 5)
+	while (true)
 	{
 		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
-		//HandleClient(ClientSocket);
-		clients[i] = ClientSocket;
-		hThreads[i] = CreateThread(
-			NULL,
-			0,
-			(LPTHREAD_START_ROUTINE)HandleClient,
-			(LPVOID)clients[i],
-			0,
-			&dwThreadIDs[i]
-		);
+		if (i < MAX_CLIENTS)
+		{
+			//HandleClient(ClientSocket);
+			clients[i] = ClientSocket;
+			hThreads[i] = CreateThread(
+				NULL,
+				0,
+				(LPTHREAD_START_ROUTINE)HandleClient,
+				(LPVOID)clients[i],
+				0,
+				&dwThreadIDs[i]
+			);
 			i++;
+		}
+		else
+		{
+			CHAR recieve_buffer[DEFAULT_BUFFER_LENGTH] = {};
+			INT iResult = recv(ClientSocket, recieve_buffer, DEFAULT_BUFFER_LENGTH, 0);
+			if (iResult > 0)
+			{
+				cout << "Bytes receieved: " << iResult << endl;
+				cout << "Message: " << recieve_buffer << endl;
+				//CONST CHAR SZ_SORRY[] = "Sorry, but all is busy";
+				INT iSendResult = send(ClientSocket, SZ_SORRY, strlen(SZ_SORRY), 0);
+				closesocket(ClientSocket);
+			}
+		}
 	}
+	WaitForMultipleObjects(MAX_CLIENTS, hThreads, TRUE, INFINITE);
 	closesocket(ListenSocket);
 	freeaddrinfo(result);
 	WSACleanup();
 }
 
-VOID HandleClient(SOCKET ClientSocket)
+VOID WINAPI HandleClient(SOCKET ClientSocket)
 {
 	//6) «ацикливаем Socket на получение соединений от клиентов:
 	INT iResult = 0;
