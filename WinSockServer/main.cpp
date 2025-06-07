@@ -81,10 +81,40 @@ void main()
 		return;
 	}
 
+	VOID HandleClient(SOCKET ClientSocket);
+	CONST INT MAX_CLIENTS = 5;
+	SOCKET clients[MAX_CLIENTS] = {};
+	DWORD dwThreadIDs[MAX_CLIENTS] = {};
+	HANDLE hThreads[MAX_CLIENTS] = {};
+	
+	INT i = 0;
+
+	while (i < 5)
+	{
+		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+		//HandleClient(ClientSocket);
+		clients[i] = ClientSocket;
+		hThreads[i] = CreateThread(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)HandleClient,
+			(LPVOID)clients[i],
+			0,
+			&dwThreadIDs[i]
+		);
+			i++;
+	}
+	closesocket(ListenSocket);
+	freeaddrinfo(result);
+	WSACleanup();
+}
+
+VOID HandleClient(SOCKET ClientSocket)
+{
 	//6) «ацикливаем Socket на получение соединений от клиентов:
+	INT iResult = 0;
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
 	int recv_buffer_lenght = DEFAULT_BUFFER_LENGTH;
-	SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
 	do
 	{
 		ZeroMemory(recvbuffer, size(recvbuffer));
@@ -124,8 +154,4 @@ void main()
 			break;
 		}
 	} while (iResult > 0);
-	closesocket(ListenSocket);
-	freeaddrinfo(result);
-	WSACleanup();
 }
-//VOID HandleCLient(SOCKET ClientSocket, )
