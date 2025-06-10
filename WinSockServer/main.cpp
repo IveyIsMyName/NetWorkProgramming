@@ -169,6 +169,7 @@ VOID WINAPI HandleClient(SOCKET ClientSocket)
 	
 		if (iResult > 0)
 		{
+			cout << "[" << client_ip << ":" << ntohs(peer.sin_port) << "] Bytes received: " << iResult << endl;
 			//inet_ntop(AF_INET, &peer.sin_addr, address, INET_ADDRSTRLEN);
 			/*cout << "Peer: " << address
 				<< (INT)peer.sin_addr.S_un.S_un_b.s_b1 << "."  
@@ -176,9 +177,8 @@ VOID WINAPI HandleClient(SOCKET ClientSocket)
 				<< (INT)peer.sin_addr.S_un.S_un_b.s_b3 << "."  
 				<< (INT)peer.sin_addr.S_un.S_un_b.s_b4  
 				<< endl;*/
-			cout << "[" << client_ip << ":" << ntohs(peer.sin_port) << "] Bytes received: " << iResult << endl;
-			CHAR sz_response[] = "Hello, I am Server! Nice to meet you!";
-			cout << "Message: " << recvbuffer << endl;
+			//CHAR sz_response[] = "Hello, I am Server! Nice to meet you!";
+			//cout << "Message: " << recvbuffer << endl;
 			//INT iSendResult = send(ClientSocket, sz_response,sizeof(sz_response), 0);
 			INT iSendResult = send(ClientSocket, recvbuffer, strlen(recvbuffer), 0);
 			if (iSendResult == SOCKET_ERROR)
