@@ -23,7 +23,7 @@ void main()
 
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0)
-				
+
 	{
 		cout << "Error: WSAstartup failed: " << iResult << endl;
 		return;
@@ -93,10 +93,14 @@ void main()
 
 	while (true)
 	{
-		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+		SOCKADDR_IN client_addr;
+		int addr_len = sizeof(client_addr);
+		SOCKET ClientSocket = accept(ListenSocket, (sockaddr*)&client_addr,&addr_len);
 		if (i < MAX_CLIENTS)
 		{
-			//HandleClient(ClientSocket);
+			CHAR client_ip[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+			cout << "New connection from: " << client_ip << ":" << ntohs(client_addr.sin_port) << endl;
 			clients[i] = ClientSocket;
 			hThreads[i] = CreateThread(
 				NULL,
@@ -118,11 +122,18 @@ void main()
 				cout << "Message: " << recieve_buffer << endl;
 				//CONST CHAR SZ_SORRY[] = "Sorry, but all is busy";
 				INT iSendResult = send(ClientSocket, SZ_SORRY, strlen(SZ_SORRY), 0);
-				closesocket(ClientSocket);
 			}
+				closesocket(ClientSocket);
 		}
 	}
 	WaitForMultipleObjects(MAX_CLIENTS, hThreads, TRUE, INFINITE);
+	for (int j = 0; j < MAX_CLIENTS; j++)
+	{
+		if (hThreads[j] != NULL)
+		{
+			CloseHandle(hThreads[j]);
+		}
+	}
 	closesocket(ListenSocket);
 	freeaddrinfo(result);
 	WSACleanup();
@@ -130,17 +141,42 @@ void main()
 
 VOID WINAPI HandleClient(SOCKET ClientSocket)
 {
+	/*SOCKADDR peer;
+	int namelen = 0l;
+	getsockname(ClientSocket, &peer, &namelen);
+	cout << "SAdata:\t" << peer.sa_data << endl;
+	cout << "Family:\t" << peer.sa_family << endl;
+	cout << "Length:\t" << namelen << endl;*/
+	
+	//ZeroMemory(&peer, sizeof(peer));
 	//6) «ацикливаем Socket на получение соединений от клиентов:
+	SOCKADDR_IN peer;
+	INT address_length = sizeof(peer);
+	getpeername(ClientSocket, (sockaddr*)&peer, &address_length);
+
+	CHAR client_ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &peer.sin_addr, client_ip, INET_ADDRSTRLEN);
+	//USHORT client_port = ntohs(peer.sin_port);
 	INT iResult = 0;
+	cout << "CLIENT: " << client_ip << ":" << ntohs(peer.sin_port) << endl;
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
+	
 	int recv_buffer_lenght = DEFAULT_BUFFER_LENGTH;
 	do
 	{
 		ZeroMemory(recvbuffer, size(recvbuffer));
 		iResult = recv(ClientSocket, recvbuffer, recv_buffer_lenght, 0);
+	
 		if (iResult > 0)
 		{
-			cout << "Bytes received: " << iResult << endl;
+			//inet_ntop(AF_INET, &peer.sin_addr, address, INET_ADDRSTRLEN);
+			/*cout << "Peer: " << address
+				<< (INT)peer.sin_addr.S_un.S_un_b.s_b1 << "."  
+				<< (INT)peer.sin_addr.S_un.S_un_b.s_b2 << "."  
+				<< (INT)peer.sin_addr.S_un.S_un_b.s_b3 << "."  
+				<< (INT)peer.sin_addr.S_un.S_un_b.s_b4  
+				<< endl;*/
+			cout << "[" << client_ip << ":" << ntohs(peer.sin_port) << "] Bytes received: " << iResult << endl;
 			CHAR sz_response[] = "Hello, I am Server! Nice to meet you!";
 			cout << "Message: " << recvbuffer << endl;
 			//INT iSendResult = send(ClientSocket, sz_response,sizeof(sz_response), 0);
