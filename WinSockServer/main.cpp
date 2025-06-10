@@ -15,6 +15,14 @@ using namespace std;
 #define DEFAULT_BUFFER_LENGTH	1500 
 #define SZ_SORRY	"Sorry, but all is busy"
 
+VOID WINAPI HandleClient(SOCKET ClientSocket);
+CONST INT MAX_CLIENTS = 3;
+SOCKET clients[MAX_CLIENTS] = {};
+DWORD dwThreadIDs[MAX_CLIENTS] = {};
+HANDLE hThreads[MAX_CLIENTS] = {};
+
+INT g_connected_clients_count = 0;
+
 void main()
 {
 	setlocale(LC_ALL, "");
@@ -83,34 +91,26 @@ void main()
 		return;
 	}
 
-	VOID WINAPI HandleClient(SOCKET ClientSocket);
-	CONST INT MAX_CLIENTS = 3;
-	SOCKET clients[MAX_CLIENTS] = {};
-	DWORD dwThreadIDs[MAX_CLIENTS] = {};
-	HANDLE hThreads[MAX_CLIENTS] = {};
-
-	INT i = 0;
-
 	while (true)
 	{
 		SOCKADDR_IN client_addr;
 		int addr_len = sizeof(client_addr);
 		SOCKET ClientSocket = accept(ListenSocket, (sockaddr*)&client_addr,&addr_len);
-		if (i < MAX_CLIENTS)
+		if (g_connected_clients_count < MAX_CLIENTS)
 		{
 			CHAR client_ip[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
 			cout << "New connection from: " << client_ip << ":" << ntohs(client_addr.sin_port) << endl;
-			clients[i] = ClientSocket;
-			hThreads[i] = CreateThread(
+			clients[g_connected_clients_count] = ClientSocket;
+			hThreads[g_connected_clients_count] = CreateThread(
 				NULL,
 				0,
 				(LPTHREAD_START_ROUTINE)HandleClient,
-				(LPVOID)clients[i],
+				(LPVOID)clients[g_connected_clients_count],
 				0,
-				&dwThreadIDs[i]
+				&dwThreadIDs[g_connected_clients_count]
 			);
-			i++;
+			g_connected_clients_count++;
 		}
 		else
 		{
@@ -178,20 +178,18 @@ VOID WINAPI HandleClient(SOCKET ClientSocket)
 				<< (INT)peer.sin_addr.S_un.S_un_b.s_b4  
 				<< endl;*/
 			//CHAR sz_response[] = "Hello, I am Server! Nice to meet you!";
-			//cout << "Message: " << recvbuffer << endl;
+			cout << "Message: " << recvbuffer << endl;
 			//INT iSendResult = send(ClientSocket, sz_response,sizeof(sz_response), 0);
-			INT iSendResult = send(ClientSocket, recvbuffer, strlen(recvbuffer), 0);
-			if (iSendResult == SOCKET_ERROR)
+			for (int i = 0; i < g_connected_clients_count; i++)
 			{
-				cout << "Error: Send failed with code: " << WSAGetLastError() << endl;
-				//closesocket(ClientSocket);
-				//closesocket(ListenSocket);
-				//freeaddrinfo(result);
-				//WSACleanup();
-				//return;
-				break; // ¬ыходим из цикла, но не закрываем сразу
+				INT iSendResult = send(clients[i], recvbuffer, strlen(recvbuffer), 0);
+				if (iSendResult == SOCKET_ERROR)
+				{
+					cout << "Error: Send failed with code: " << WSAGetLastError() << endl;
+					break; // ¬ыходим из цикла, но не закрываем сразу
+				}
 			}
-			cout << "Bytes sent: " << iSendResult << endl;
+			//cout << "Bytes sent: " << iSendResult << endl;
 		}
 		else if (iResult == 0)
 		{

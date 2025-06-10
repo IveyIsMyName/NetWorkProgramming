@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif // !WIN32_LEAN_AND_MEAN
@@ -8,6 +9,9 @@
 #include<WS2tcpip.h>
 #include<iostream>
 using namespace std;
+using std::cin;
+using std::cout;
+using std::endl;
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -15,6 +19,13 @@ using namespace std;
 #define DEFAULT_BUFFER_LENGTH	1500
 #define SZ_SORRY	"Sorry, but all is busy"
 
+BOOL g_connected = TRUE;
+
+
+VOID Send(SOCKET connect_socket, addrinfo* result);
+VOID Recieve(SOCKET connect_socket);
+
+//#define ALL_IN_ONE
 void main()
 {
 	setlocale(LC_ALL, "");
@@ -60,23 +71,24 @@ void main()
 
 	//5) Получение и отправка данных:
 	//int recvbuflen = DEFAULT_BUFFER_LENGTH;
+#ifdef ALL_IN_ONE
 	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am Client";
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH]{};
 
 	do
 	{
-	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
-	if (iResult == SOCKET_ERROR)
-	{
-		cout << "Send data failed with " << WSAGetLastError() << endl;
-		closesocket(connect_socket);
-		freeaddrinfo(result);
-		WSACleanup();
-		return;
-	}
-	cout << iResult << " Bytes sent" << endl;
+		iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			cout << "Send data failed with " << WSAGetLastError() << endl;
+			closesocket(connect_socket);
+			freeaddrinfo(result);
+			WSACleanup();
+			return;
+		}
+		cout << iResult << " Bytes sent" << endl;
 
-	//6) Receive data:
+		//6) Receive data:
 
 		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
 		if (iResult > 0)cout << "Bytes received: " << iResult << ", Message: " << recvbuffer << endl;
@@ -88,12 +100,28 @@ void main()
 		ZeroMemory(send_buffer, sizeof(send_buffer));
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
 
-		cout << "Введите сообщение: "; 
+		cout << "Введите сообщение: ";
 		SetConsoleCP(1251);
 		cin.getline(send_buffer, DEFAULT_BUFFER_LENGTH);
 		SetConsoleCP(866);
 		//for (int i = 0; send_buffer[i]; i++)send_buffer[i] = tolower(send_buffer[i]);
 	} while (iResult > 0 && strcmp(send_buffer, "exit"));
+#endif // ALL_IN_ONE
+	DWORD dwRecvThreadID = 0;
+	HANDLE recvHandle = CreateThread
+	(
+		NULL,
+		0,
+		(LPTHREAD_START_ROUTINE)Recieve,
+		(LPVOID)connect_socket,
+		0,
+		&dwRecvThreadID
+	);
+
+	Send(connect_socket, result);
+	g_connected = FALSE;
+	//TODO:Sync Threads
+
 
 	//7) Disconnect:
 	iResult = shutdown(connect_socket, SD_SEND);
@@ -102,4 +130,51 @@ void main()
 	WSACleanup();
 
 	system("PAUSE");
+}
+
+VOID Send(SOCKET connect_socket, addrinfo* result)
+{
+	INT iResult = 0;
+	cout << "Your nickname please: ";
+	CHAR sz_nickname[32]{};
+	cin.getline(sz_nickname, 32);
+	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am ";
+	strcat(send_buffer, sz_nickname);
+	do
+	{
+		iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			cout << "Send data failed with " << WSAGetLastError() << endl;
+			closesocket(connect_socket);
+			freeaddrinfo(result);
+			WSACleanup();
+			return;
+		}
+		cout << iResult << " Bytes sent" << endl;
+
+		ZeroMemory(send_buffer, sizeof(send_buffer));
+		cout << "Введите сообщение: ";
+		SetConsoleCP(1251);
+		cin.getline(send_buffer, DEFAULT_BUFFER_LENGTH);
+		SetConsoleCP(866);
+		//for (int i = 0; send_buffer[i]; i++)send_buffer[i] = tolower(send_buffer[i]);
+	} while (iResult > 0 && strcmp(send_buffer, "exit"));
+}
+VOID Recieve(SOCKET connect_socket)
+{
+	INT iResult = 0;
+	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH]{};
+	do
+	{
+		//6) Receive data:
+		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
+		if (iResult > 0)cout << "Bytes received: " << iResult << ", Message: " << recvbuffer << endl;
+		else if (iResult == 0)cout << "Connection closed" << endl;
+		else cout << "Recieve failed with code: " << WSAGetLastError() << endl;
+		/////////////////////////////////////////////
+		if (strcmp(recvbuffer, SZ_SORRY) == 0)break;
+		/////////////////////////////////////////////
+		ZeroMemory(recvbuffer, sizeof(recvbuffer));
+	} while (g_connected);
 }
